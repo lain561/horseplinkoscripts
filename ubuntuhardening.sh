@@ -31,21 +31,21 @@ BANNER_MESSAGE="**********************************************
 **********************************************"
 
 # Create the banner file with the custom message
-echo "Creating SSH banner..."
-echo "$BANNER_MESSAGE" | sudo tee $BANNER_FILE > /dev/null
+sudo echo "Creating SSH banner..."
+sudo echo "$BANNER_MESSAGE" | sudo tee $BANNER_FILE > /dev/null
 
 # Ensure that the banner is referenced in the SSH configuration file
-echo "Configuring SSH to use the banner..."
+sudo echo "Configuring SSH to use the banner..."
 sudo sed -i '/^#Banner/c\Banner /etc/ssh/ssh_banner' /etc/ssh/sshd_config
 
-echo "SSH banner setup complete!"
+sudo echo "SSH banner setup complete!"
 
 # Disable root login and enforce sudo usage
-echo "Disabling root login and securing SSH..."
-passwd -l root
-echo "PermitRootLogin no" >> /etc/ssh/sshd_config
-echo "Protocol 2" >> /etc/ssh/sshd_config
-echo "AllowUsers hkeating ubuntu" >> /etc/ssh/sshd_config  # SSH whitelist
+sudo echo "Disabling root login and securing SSH..."
+sudo passwd -l root
+sudo echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+sudo echo "Protocol 2" >> /etc/ssh/sshd_config
+sudo echo "AllowUsers hkeating ubuntu" >> /etc/ssh/sshd_config  # SSH whitelist
 sudo systemctl restart sshd
 
 # Install and configure the firewall (UFW)
