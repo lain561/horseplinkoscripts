@@ -2,24 +2,54 @@
 # Harden Rocky Linux for Horse Plinko
 # Written by Joshua Gilliland
 
-# Update and upgrade 
-echo "Updating and upgrading the system..."
-sudo dnf update -y
-sudo dnf install epel-release -y  # Enable Extra Packages for Enterprise Linux (EPEL)
+# Define the banner file path and the message
+BANNER_FILE="/etc/ssh/ssh_banner"
+BANNER_MESSAGE="**********************************************
+*   WARNING: Unauthorized access prohibited!   *
+                                 |\    /|     
+                              ___| \,,/_/     
+                           ---__/ \/    \     
+                          __--/     (D)  \    
+                          _ -/    (_      \   
+                         // /       \_ / ==\  
+   __-------_____--___--/           / \_ O o) 
+  /                                 /   \==/  
+ /                                 /          
+||          )                   \_/\          
+||         /              _      /  |         
+| |      /--______      ___\    /\  :         
+| /   __-  - _/   ------    |  |   \ \        
+ |   -  -   /                | |     \ )      
+ |  |   -  |                 | )     | |      
+  | |    | |                 | |    | |       
+  | |    < |                 | |   |_/        
+  < |    /__\                <  \             
+  /__\                       /___\           
 
-# Security Upgrades
-echo "Installing security updates..."
-sudo dnf install dnf-automatic -y
-sudo systemctl enable --now dnf-automatic.timer
+  petah...the horse is here...
+  https://www.youtube.com/watch?v=Eu0AP8ZYZSM
+**********************************************"
 
+# Create the banner file with the custom message
+echo "Creating SSH banner..."
+echo "$BANNER_MESSAGE" | sudo tee $BANNER_FILE > /dev/null
+
+# Ensure that the banner is referenced in the SSH configuration file
+echo "Configuring SSH to use the banner..."
+sudo sed -i '/^#Banner/c\Banner /etc/ssh/ssh_banner' /etc/ssh/sshd_config
+
+
+echo "SSH banner setup complete!"
 
 # Disable root login and force sudo usage
 echo "Disabling root login and securing SSH..."
 passwd -l root
 echo "PermitRootLogin no" >> /etc/ssh/sshd_config
 echo "Protocol 2" >> /etc/ssh/sshd_config
-echo "AllowUsers hkeating rockyuser" >> /etc/ssh/sshd_config  # SSH whitelist
+echo "AllowUsers hkeating rocky" >> /etc/ssh/sshd_config  # SSH whitelist
 sudo systemctl restart sshd
+
+
 
 #  Firewall (firewalld)
 echo "Configuring the firewall..."
@@ -44,17 +74,13 @@ chown -R root:root /etc/httpd
 echo "Removing unauthorized groups and users..."
 sudo sed -i -e '/nopasswdlogin/d' /etc/group
 
-default_users=("hkeating" "rockyuser")
-for user in "${default_users[@]}"; do
-  echo "Checking password for $user..."
-  passwd_expiry=$(sudo chage -l $user | grep "Password expires" | cut -d: -f2)
-
-  if [[ $passwd_expiry == " never" ]]; then
-    echo "User $user has a default or non-expiring password, forcing password change."
-    sudo passwd $user
-  else
-    echo "Password for $user is already set with an expiration policy."
-  fi
+# REPLACE "PASSWORD!"
+for user in $( sed 's/:.*//' /etc/passwd);
+	do
+	  if [[ $( id -u $user) -ge 999 && "$user" != "nobody" ]]
+	  then
+		(echo "test"; echo "test") |  passwd "$user"
+	  fi
 done
 
 # Secure FTP configuration (vsftpd) (may need debugging come plinko)
@@ -79,11 +105,29 @@ chattr +i /etc/vsftpd/user_list
 chattr +i /etc/vsftpd/vsftpd.conf
 chattr +i /etc/ssh/sshd_config
 
+# Update and upgrade 
+echo "Updating and upgrading the system..."
+sudo dnf update -y
+sudo dnf install epel-release -y  # Enable Extra Packages for Enterprise Linux (EPEL)
+
+# Security Upgrades
+echo "Installing security updates..."
+sudo dnf install dnf-automatic -y
+sudo systemctl enable --now dnf-automatic.timer
+
 # Install security tools
 echo "Installing security tools..."
-sudo dnf install fail2ban tmux curl audit -y
+dnf install ranger -y
+dnf install fail2ban -y
+dnf install tmux -y
+dnf install curl -y
+dnf install whowatch -y
+dnf install auditd -y
 sudo systemctl enable --now fail2ban
 sudo systemctl enable --now auditd
+
+wget https://github.com/DominicBreuker/pspy/releases/download/v1.2.1/pspy64
+chmod +x pspy64
 
 
 # Disable needless services
